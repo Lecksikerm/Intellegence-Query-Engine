@@ -1,14 +1,7 @@
 const express = require('express');
 const router = express.Router();
+const profileController = require('../controllers/profile.controller');
 
-router.get('/', (req, res) => {
-    res.status(200).json({
-        status: 'success',
-        page: 1,
-        limit: 10,
-        total: 0,
-        data: []
-    });
-});
+router.get('/', profileController.getProfiles);
 
 module.exports = router;
