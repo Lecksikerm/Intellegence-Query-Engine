@@ -11,7 +11,7 @@ A production-ready backend API built for Insighta Labs that enables advanced fil
 Base URL:
 
 ```
-https://your-deployed-url.com
+https://intellegence-query-engine-production.up.railway.app/
 ```
 
 ---
