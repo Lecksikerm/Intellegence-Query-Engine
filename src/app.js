@@ -17,10 +17,10 @@ app.get('/health', (req, res) => {
 
 app.use('/api/profiles', profileRoutes);
 
-app.use((req, res) => {
-    res.status(404).json({
-        status: 'error',
-        message: 'Route not found'
+app.get('/', (req, res) => {
+    res.status(200).json({
+        status: 'success',
+        message: 'Intelligence Query Engine API is running'
     });
 });
 
