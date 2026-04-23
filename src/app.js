@@ -1,3 +1,4 @@
+Script
 const express = require('express');
 const cors = require('cors');
 const profileRoutes = require('./routes/profile.routes');
@@ -8,6 +9,13 @@ const app = express();
 app.use(cors({ origin: '*' }));
 app.use(express.json());
 
+app.get('/', (req, res) => {
+    res.status(200).json({
+        status: 'success',
+        message: 'Intelligence Query Engine API is running'
+    });
+});
+
 app.get('/health', (req, res) => {
     res.status(200).json({
         status: 'success',
@@ -17,10 +25,10 @@ app.get('/health', (req, res) => {
 
 app.use('/api/profiles', profileRoutes);
 
-app.get('/', (req, res) => {
-    res.status(200).json({
-        status: 'success',
-        message: 'Intelligence Query Engine API is running'
+app.use((req, res) => {
+    res.status(404).json({
+        status: 'error',
+        message: 'Route not found'
     });
 });
 
