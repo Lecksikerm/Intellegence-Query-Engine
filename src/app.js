@@ -1,4 +1,3 @@
-Script
 const express = require('express');
 const cors = require('cors');
 const profileRoutes = require('./routes/profile.routes');
