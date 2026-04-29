@@ -5,12 +5,12 @@ Stage 3 extends the Stage 2 Profile Intelligence System without removing existin
 ## Repositories
 
 - Backend repo: current repository
-- CLI repo: `insighta-cli`
-- Web portal repo: `insighta-web-portal`
+- CLI repo: separate repository (consumes this backend)
+- Web portal repo: separate repository (consumes this backend)
 
 ## Live URLs
 
-- Live backend URL: set your deployed API URL here
+- Live backend URL: https://intellegence-query-engine-production.up.railway.app/
 - Live web portal URL: set your deployed portal URL here
 
 ## System Architecture
@@ -20,9 +20,9 @@ Stage 3 extends the Stage 2 Profile Intelligence System without removing existin
 - Versioned profile APIs:
   - `v1`: legacy Stage 2-compatible response
   - `v2`: updated pagination envelope (`pagination` object)
-- Two clients against same backend:
-  - `insighta-cli` for terminal workflows
-  - `insighta-web-portal` for browser workflows
+- Two external clients integrate with the same backend:
+  - CLI for terminal workflows
+  - Web portal for browser workflows
 
 ## Authentication Flow
 
@@ -39,11 +39,11 @@ Stage 3 extends the Stage 2 Profile Intelligence System without removing existin
 
 ## Token Handling Approach
 
-- Access tokens are JWTs with short expiration (`ACCESS_TOKEN_TTL`, default `5m`)
+- Access tokens are JWTs with short expiration (`ACCESS_TOKEN_TTL`, default `15m`)
 - Refresh tokens are JWTs with short expiration (`REFRESH_TOKEN_TTL`, default `30m`)
 - Refresh tokens are hashed before persistence in `refresh_tokens.token`
 - Refresh endpoint rotates tokens and invalidates the previous refresh token
-- CLI credentials stored at `~/.insighta/credentials.json`
+- CLI implementation should store credentials at `~/.insighta/credentials.json`
 
 ## Role Enforcement Logic
 
@@ -86,30 +86,20 @@ Stage 3 extends the Stage 2 Profile Intelligence System without removing existin
   - `GET /api/v2/profiles/search`
   - `GET /api/v2/profiles/export`
 
-## CLI Usage
+## CLI Usage Contract
 
-From `insighta-cli`:
+Expected CLI capabilities against this backend:
 
-- `npm link`
-- `insighta login`
-- `insighta whoami`
-- `insighta profiles list "page=1&limit=10"`
-- `insighta profiles search "q=adult%20males%20from%20kenya"`
-- `insighta profiles export`
-- `insighta logout`
+- Login via GitHub PKCE (`/api/auth/github?interface=cli...`)
+- Complete login via one-time exchange (`POST /api/auth/cli/complete`)
+- Refresh token flow (`POST /api/auth/refresh`)
+- Versioned profile listing/search/export (`/api/v2/profiles*`)
 
 ## Local Setup
 
-1. Backend
-   - `npm install`
-   - set `.env` (minimum: `DATABASE_URL`, `ACCESS_TOKEN_SECRET`, `REFRESH_TOKEN_SECRET`, `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`, `GITHUB_CALLBACK_URL`, `WEB_PORTAL_URL`, `CORS_ORIGINS`)
-   - `npx prisma migrate dev`
-   - `npm run seed`
-   - `npm run dev`
-2. Web portal
-   - `cd insighta-web-portal`
-   - `npm start`
-3. CLI
-   - `cd insighta-cli`
-   - `npm link`
+1. `npm install`
+2. Configure `.env` (minimum: `DATABASE_URL`, `ACCESS_TOKEN_SECRET`, `REFRESH_TOKEN_SECRET`, `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`, `GITHUB_CALLBACK_URL`, `WEB_PORTAL_URL`, `CORS_ORIGINS`)
+3. `npx prisma migrate dev`
+4. `npm run seed`
+5. `npm run dev`
 
