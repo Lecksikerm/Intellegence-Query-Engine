@@ -5,6 +5,13 @@ const profileController = require('../controllers/profile.controller');
 const { protect, requireRoles } = require('../middleware/auth');
 
 router.get(
+    '/export',
+    protect,
+    requireRoles('admin'),
+    profileController.exportProfiles
+);
+
+router.get(
     '/search',
     protect,
     requireRoles('admin', 'analyst'),

@@ -1,5 +1,6 @@
 const profileService = require('../services/profile.service');
 const { parseNaturalLanguageQuery } = require('../utils/queryParser');
+const { profilesToCsv } = require('../utils/csv');
 const {
     parsePagination,
     parseProfileFilters,
@@ -97,7 +98,25 @@ async function searchProfiles(req, res, next) {
     }
 }
 
+async function exportProfiles(req, res, next) {
+    try {
+        const profiles = await profileService.getAllProfilesForExport();
+        const csv = profilesToCsv(profiles);
+
+        res.setHeader('Content-Type', 'text/csv');
+        res.setHeader(
+            'Content-Disposition',
+            'attachment; filename="profiles.csv"'
+        );
+
+        return res.status(200).send(csv);
+    } catch (error) {
+        next(error);
+    }
+}
+
 module.exports = {
     getProfiles,
-    searchProfiles
+    searchProfiles,
+    exportProfiles
 };

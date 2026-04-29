@@ -142,7 +142,16 @@ async function searchProfiles({
     };
 }
 
+async function getAllProfilesForExport() {
+    return prisma.profile.findMany({
+        orderBy: {
+            created_at: 'desc'
+        }
+    });
+}
+
 module.exports = {
     getProfiles,
-    searchProfiles
+    searchProfiles,
+    getAllProfilesForExport
 };
