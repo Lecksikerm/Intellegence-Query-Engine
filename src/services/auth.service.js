@@ -2,17 +2,19 @@ const axios = require('axios');
 const prisma = require('../config/prisma');
 const {
     generateAccessToken,
-    generateRefreshToken
+    generateRefreshToken,
+    verifyRefreshToken
 } = require('../utils/jwt');
 
-async function exchangeCodeForGithubToken(code) {
+async function exchangeCodeForGithubToken(code, codeVerifier) {
     const response = await axios.post(
         'https://github.com/login/oauth/access_token',
         {
             client_id: process.env.GITHUB_CLIENT_ID,
             client_secret: process.env.GITHUB_CLIENT_SECRET,
             code,
-            redirect_uri: process.env.GITHUB_CALLBACK_URL
+            redirect_uri: process.env.GITHUB_CALLBACK_URL,
+            code_verifier: codeVerifier
         },
         {
             headers: {
@@ -51,11 +53,7 @@ async function getGithubPrimaryEmail(githubAccessToken) {
         (email) => email.primary && email.verified
     );
 
-    if (primaryEmail) {
-        return primaryEmail.email;
-    }
-
-    return null;
+    return primaryEmail ? primaryEmail.email : null;
 }
 
 async function findOrCreateGithubUser(githubProfile, email) {
@@ -71,7 +69,7 @@ async function findOrCreateGithubUser(githubProfile, email) {
         return user;
     }
 
-    user = await prisma.user.create({
+    return prisma.user.create({
         data: {
             github_id: githubId,
             email,
@@ -80,8 +78,6 @@ async function findOrCreateGithubUser(githubProfile, email) {
             role: 'analyst'
         }
     });
-
-    return user;
 }
 
 async function createSessionTokens(user) {
@@ -114,8 +110,12 @@ async function createSessionTokens(user) {
     };
 }
 
-async function loginWithGithubCode(code) {
-    const githubAccessToken = await exchangeCodeForGithubToken(code);
+async function loginWithGithubCode(code, codeVerifier) {
+    const githubAccessToken = await exchangeCodeForGithubToken(
+        code,
+        codeVerifier
+    );
+
     const githubProfile = await getGithubUser(githubAccessToken);
 
     let email = githubProfile.email;
@@ -137,6 +137,47 @@ async function loginWithGithubCode(code) {
     };
 }
 
+async function refreshSession(refreshToken) {
+    let decoded;
+
+    try {
+        decoded = verifyRefreshToken(refreshToken);
+    } catch (error) {
+        const err = new Error('Invalid refresh token');
+        err.statusCode = 401;
+        throw err;
+    }
+
+    const storedToken = await prisma.refreshToken.findUnique({
+        where: { token: refreshToken },
+        include: { user: true }
+    });
+
+    if (!storedToken || storedToken.expires_at < new Date()) {
+        const err = new Error('Invalid refresh token');
+        err.statusCode = 401;
+        throw err;
+    }
+
+    await prisma.refreshToken.delete({
+        where: { token: refreshToken }
+    });
+
+    const tokens = await createSessionTokens(storedToken.user);
+
+    return {
+        user: {
+            id: storedToken.user.id,
+            email: storedToken.user.email,
+            name: storedToken.user.name,
+            role: storedToken.user.role,
+            avatar_url: storedToken.user.avatar_url
+        },
+        ...tokens
+    };
+}
+
 module.exports = {
-    loginWithGithubCode
+    loginWithGithubCode,
+    refreshSession
 };

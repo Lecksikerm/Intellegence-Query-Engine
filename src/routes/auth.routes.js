@@ -4,5 +4,6 @@ const authController = require('../controllers/auth.controller');
 
 router.get('/github', authController.githubLogin);
 router.get('/github/callback', authController.githubCallback);
+router.post('/refresh', authController.refreshToken);
 
 module.exports = router;

@@ -4,6 +4,7 @@ const cookieParser = require('cookie-parser');
 const profileRoutes = require('./routes/profile.routes');
 const authRoutes = require('./routes/auth.routes');
 const errorHandler = require('./middleware/errorHandler');
+const { protect } = require('./middleware/auth');
 
 const app = express();
 
@@ -31,6 +32,13 @@ app.get('/health', (req, res) => {
 
 app.use('/api/auth', authRoutes);
 app.use('/api/profiles', profileRoutes);
+
+app.get('/api/test-auth', protect, (req, res) => {
+    res.status(200).json({
+        status: 'success',
+        user: req.user
+    });
+});
 
 app.use((req, res) => {
     res.status(404).json({
