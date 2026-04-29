@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const profileRoutes = require('./routes/profile.routes');
 const errorHandler = require('./middleware/errorHandler');
+const { protect } = require('./middleware/auth');
 
 const app = express();
 
@@ -19,6 +20,13 @@ app.get('/health', (req, res) => {
     res.status(200).json({
         status: 'success',
         message: 'Server is running'
+    });
+});
+
+app.get('/api/test-auth', protect, (req, res) => {
+    res.json({
+        status: 'success',
+        user: req.user
     });
 });
 
