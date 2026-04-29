@@ -1,13 +1,19 @@
 const express = require('express');
 const cors = require('cors');
+const cookieParser = require('cookie-parser');
 const profileRoutes = require('./routes/profile.routes');
+const authRoutes = require('./routes/auth.routes');
 const errorHandler = require('./middleware/errorHandler');
-const { protect } = require('./middleware/auth');
 
 const app = express();
 
-app.use(cors({ origin: '*' }));
+app.use(cors({
+    origin: '*',
+    credentials: true
+}));
+
 app.use(express.json());
+app.use(cookieParser());
 
 app.get('/', (req, res) => {
     res.status(200).json({
@@ -23,13 +29,7 @@ app.get('/health', (req, res) => {
     });
 });
 
-app.get('/api/test-auth', protect, (req, res) => {
-    res.json({
-        status: 'success',
-        user: req.user
-    });
-});
-
+app.use('/api/auth', authRoutes);
 app.use('/api/profiles', profileRoutes);
 
 app.use((req, res) => {
