@@ -5,6 +5,7 @@ const {
     generateRefreshToken,
     verifyRefreshToken
 } = require('../utils/jwt');
+const { hashToken } = require('../utils/tokenHash');
 
 async function exchangeCodeForGithubToken(code, codeVerifier) {
     const response = await axios.post(
@@ -93,12 +94,12 @@ async function createSessionTokens(user) {
         role: user.role
     });
 
-    const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 7);
+    const decodedRefresh = verifyRefreshToken(refreshToken);
+    const expiresAt = new Date(decodedRefresh.exp * 1000);
 
     await prisma.refreshToken.create({
         data: {
-            token: refreshToken,
+            token: hashToken(refreshToken),
             user_id: user.id,
             expires_at: expiresAt
         }
@@ -148,8 +149,9 @@ async function refreshSession(refreshToken) {
         throw err;
     }
 
+    const tokenHash = hashToken(refreshToken);
     const storedToken = await prisma.refreshToken.findUnique({
-        where: { token: refreshToken },
+        where: { token: tokenHash },
         include: { user: true }
     });
 
@@ -160,7 +162,7 @@ async function refreshSession(refreshToken) {
     }
 
     await prisma.refreshToken.delete({
-        where: { token: refreshToken }
+        where: { token: tokenHash }
     });
 
     const tokens = await createSessionTokens(storedToken.user);
@@ -179,5 +181,6 @@ async function refreshSession(refreshToken) {
 
 module.exports = {
     loginWithGithubCode,
-    refreshSession
+    refreshSession,
+    createSessionTokens
 };

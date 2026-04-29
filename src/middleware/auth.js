@@ -3,15 +3,22 @@ const { verifyAccessToken } = require('../utils/jwt');
 function protect(req, res, next) {
     try {
         const authHeader = req.headers.authorization;
+        const cookieToken = req.cookies?.access_token;
+        let token = null;
 
-        if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        if (authHeader && authHeader.startsWith('Bearer ')) {
+            token = authHeader.split(' ')[1];
+        } else if (cookieToken) {
+            token = cookieToken;
+        }
+
+        if (!token) {
             return res.status(401).json({
                 status: 'error',
                 message: 'Unauthorized'
             });
         }
 
-        const token = authHeader.split(' ')[1];
         const decoded = verifyAccessToken(token);
 
         req.user = decoded;

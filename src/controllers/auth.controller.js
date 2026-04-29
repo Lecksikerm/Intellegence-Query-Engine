@@ -1,29 +1,15 @@
+const { randomUUID } = require('crypto');
 const { generateState } = require('../utils/oauthState');
-const {
-    generateCodeVerifier,
-    generateCodeChallenge
-} = require('../utils/pkce');
+const { generateCodeChallenge } = require('../utils/pkce');
 const authService = require('../services/auth.service');
+const {
+    saveOauthSession,
+    consumeOauthSession,
+    createCliCompletion,
+    consumeCliCompletion
+} = require('../utils/oauthStore');
 
-function githubLogin(req, res) {
-    const state = generateState();
-    const codeVerifier = generateCodeVerifier();
-    const codeChallenge = generateCodeChallenge(codeVerifier);
-
-    res.cookie('github_oauth_state', state, {
-        httpOnly: true,
-        sameSite: 'lax',
-        secure: process.env.NODE_ENV === 'production',
-        maxAge: 10 * 60 * 1000
-    });
-
-    res.cookie('github_pkce_verifier', codeVerifier, {
-        httpOnly: true,
-        sameSite: 'lax',
-        secure: process.env.NODE_ENV === 'production',
-        maxAge: 10 * 60 * 1000
-    });
-
+function buildGithubAuthUrl(state, codeChallenge) {
     const params = new URLSearchParams({
         client_id: process.env.GITHUB_CLIENT_ID,
         redirect_uri: process.env.GITHUB_CALLBACK_URL,
@@ -33,68 +19,149 @@ function githubLogin(req, res) {
         code_challenge_method: 'S256'
     });
 
-    return res.redirect(
-        `https://github.com/login/oauth/authorize?${params.toString()}`
-    );
+    return `https://github.com/login/oauth/authorize?${params.toString()}`;
+}
+
+function setSessionCookies(res, accessToken, refreshToken) {
+    const isProd = process.env.NODE_ENV === 'production';
+
+    res.cookie('access_token', accessToken, {
+        httpOnly: true,
+        sameSite: 'lax',
+        secure: isProd,
+        maxAge: 5 * 60 * 1000
+    });
+
+    res.cookie('refresh_token', refreshToken, {
+        httpOnly: true,
+        sameSite: 'lax',
+        secure: isProd,
+        maxAge: 30 * 60 * 1000
+    });
+
+    res.cookie('csrf_token', randomUUID(), {
+        httpOnly: false,
+        sameSite: 'lax',
+        secure: isProd,
+        maxAge: 30 * 60 * 1000
+    });
+}
+
+function githubLogin(req, res) {
+    const interfaceType = req.query.interface === 'cli' ? 'cli' : 'web';
+    const state = generateState();
+    const codeVerifier = String(req.query.code_verifier || '').trim();
+    const cliRedirectUri = String(req.query.cli_redirect_uri || '').trim();
+
+    if (!codeVerifier) {
+        return res.status(400).json({
+            status: 'error',
+            message: 'Missing or empty parameter'
+        });
+    }
+
+    if (interfaceType === 'cli' && !cliRedirectUri) {
+        return res.status(400).json({
+            status: 'error',
+            message: 'Missing or empty parameter'
+        });
+    }
+
+    const codeChallenge = generateCodeChallenge(codeVerifier);
+    saveOauthSession({ state, codeVerifier, interfaceType, cliRedirectUri });
+    const authorizeUrl = buildGithubAuthUrl(state, codeChallenge);
+
+    if (req.query.redirect === 'false') {
+        return res.status(200).json({
+            status: 'success',
+            data: {
+                authorizeUrl,
+                state
+            }
+        });
+    }
+
+    return res.redirect(authorizeUrl);
 }
 
 async function githubCallback(req, res, next) {
     try {
         const { code, state } = req.query;
-        const storedState = req.cookies.github_oauth_state;
-        const codeVerifier = req.cookies.github_pkce_verifier;
-
-        if (!code || !state || !storedState || state !== storedState) {
+        if (!code || !state) {
             return res.status(400).json({
                 status: 'error',
                 message: 'Invalid OAuth state'
             });
         }
 
-        if (!codeVerifier) {
+        const oauthSession = consumeOauthSession(state);
+        if (!oauthSession) {
             return res.status(400).json({
                 status: 'error',
-                message: 'Missing PKCE verifier'
+                message: 'Invalid OAuth state'
             });
         }
 
-        res.clearCookie('github_oauth_state');
-        res.clearCookie('github_pkce_verifier');
-
         const { user, accessToken, refreshToken } =
-            await authService.loginWithGithubCode(code, codeVerifier);
+            await authService.loginWithGithubCode(code, oauthSession.codeVerifier);
 
-        return res.status(200).json({
-            status: 'success',
-            data: {
-                user: {
-                    id: user.id,
-                    email: user.email,
-                    name: user.name,
-                    role: user.role,
-                    avatar_url: user.avatar_url
-                },
-                accessToken,
-                refreshToken
-            }
+        if (oauthSession.interfaceType === 'web') {
+            setSessionCookies(res, accessToken, refreshToken);
+            const redirectBase = process.env.WEB_PORTAL_URL || 'http://localhost:5173';
+            return res.redirect(`${redirectBase}/auth/success`);
+        }
+
+        const requestId = createCliCompletion({
+            user,
+            accessToken,
+            refreshToken
         });
+
+        return res.redirect(
+            `${oauthSession.cliRedirectUri}?request_id=${encodeURIComponent(requestId)}`
+        );
     } catch (error) {
         next(error);
     }
 }
 
+async function completeCliLogin(req, res) {
+    const { request_id: requestId } = req.body || {};
+    if (!requestId) {
+        return res.status(400).json({
+            status: 'error',
+            message: 'Missing or empty parameter'
+        });
+    }
+
+    const completion = consumeCliCompletion(requestId);
+    if (!completion) {
+        return res.status(401).json({
+            status: 'error',
+            message: 'Invalid or expired login request'
+        });
+    }
+
+    return res.status(200).json({
+        status: 'success',
+        data: completion
+    });
+}
+
 async function refreshToken(req, res, next) {
     try {
-        const { refreshToken } = req.body;
+        const incomingRefreshToken =
+            req.body?.refreshToken || req.cookies?.refresh_token;
 
-        if (!refreshToken) {
+        if (!incomingRefreshToken) {
             return res.status(400).json({
                 status: 'error',
                 message: 'Missing or empty parameter'
             });
         }
 
-        const tokens = await authService.refreshSession(refreshToken);
+        const tokens = await authService.refreshSession(incomingRefreshToken);
+        setSessionCookies(res, tokens.accessToken, tokens.refreshToken);
 
         return res.status(200).json({
             status: 'success',
@@ -105,8 +172,30 @@ async function refreshToken(req, res, next) {
     }
 }
 
+function logout(req, res) {
+    res.clearCookie('access_token');
+    res.clearCookie('refresh_token');
+    res.clearCookie('csrf_token');
+    return res.status(200).json({
+        status: 'success',
+        message: 'Logged out'
+    });
+}
+
+function me(req, res) {
+    return res.status(200).json({
+        status: 'success',
+        data: {
+            user: req.user
+        }
+    });
+}
+
 module.exports = {
     githubLogin,
     githubCallback,
-    refreshToken
+    completeCliLogin,
+    refreshToken,
+    logout,
+    me
 };

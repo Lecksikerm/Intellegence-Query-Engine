@@ -59,10 +59,15 @@ async function getProfiles({
         })
     ]);
 
+    const totalPages = Math.ceil(total / limit) || 1;
+
     return {
         page,
         limit,
         total,
+        totalPages,
+        hasNextPage: page < totalPages,
+        hasPreviousPage: page > 1,
         data: profiles
     };
 }
@@ -134,24 +139,29 @@ async function searchProfiles({
         })
     ]);
 
-    return {
-        page,
-        limit,
-        total,
-        data: profiles
+        const totalPages = Math.ceil(total / limit);
+    
+        return {
+            page,
+            limit,
+            total,
+            totalPages,
+            hasNextPage: page < totalPages,
+            hasPreviousPage: page > 1,
+            data: profiles
+        };
+    }
+    
+    async function getAllProfilesForExport() {
+        return prisma.profile.findMany({
+            orderBy: {
+                created_at: 'desc'
+            }
+        });
+    }
+    
+    module.exports = {
+        getProfiles,
+        searchProfiles,
+        getAllProfilesForExport
     };
-}
-
-async function getAllProfilesForExport() {
-    return prisma.profile.findMany({
-        orderBy: {
-            created_at: 'desc'
-        }
-    });
-}
-
-module.exports = {
-    getProfiles,
-    searchProfiles,
-    getAllProfilesForExport
-};

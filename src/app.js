@@ -5,6 +5,7 @@ const cookieParser = require('cookie-parser');
 const profileRoutes = require('./routes/profile.routes');
 const authRoutes = require('./routes/auth.routes');
 const v1ProfileRoutes = require('./routes/v1.profile.routes');
+const v2ProfileRoutes = require('./routes/v2.profile.routes');
 
 const errorHandler = require('./middleware/errorHandler');
 const { protect } = require('./middleware/auth');
@@ -14,7 +15,16 @@ const { apiLimiter, authLimiter } = require('./middleware/rateLimiter');
 const app = express();
 
 app.use(cors({
-    origin: '*',
+    origin: (origin, callback) => {
+        const allowedOrigins = (process.env.CORS_ORIGINS || '')
+            .split(',')
+            .map((value) => value.trim())
+            .filter(Boolean);
+        if (!origin || allowedOrigins.length === 0 || allowedOrigins.includes(origin)) {
+            return callback(null, true);
+        }
+        return callback(new Error('CORS origin not allowed'));
+    },
     credentials: true
 }));
 
@@ -41,6 +51,7 @@ app.get('/health', (req, res) => {
 
 app.use('/api/auth', authRoutes);
 app.use('/api/v1/profiles', v1ProfileRoutes);
+app.use('/api/v2/profiles', v2ProfileRoutes);
 app.use('/api/profiles', profileRoutes);
 
 app.get('/api/test-auth', protect, (req, res) => {

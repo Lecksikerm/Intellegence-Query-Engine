@@ -1,256 +1,115 @@
-# 🧠 Intelligence Query Engine
-
-> Turning raw demographic data into actionable insights through intelligent querying.
-
-A production-ready backend API built for Insighta Labs that enables advanced filtering, sorting, pagination, and rule-based natural language search over large profile datasets.
-
----
-
-## 🚀 Live API
-
-Base URL:
-
-```
-https://intellegence-query-engine-production.up.railway.app/
-```
-
----
-
-## 🛠️ Tech Stack
-
-* Backend: Node.js, Express
-* Database: PostgreSQL
-* ORM: Prisma
-* Architecture: RESTful API
-* Language: JavaScript
-
----
-
-## 📊 Database Schema
-
-The `profiles` table follows the required structure:
-
-| Field               | Type      | Description                    |
-| ------------------- | --------- | ------------------------------ |
-| id                  | UUID      | Primary key                    |
-| name                | String    | Unique name                    |
-| gender              | String    | male/female                    |
-| gender_probability  | Float     | Confidence score               |
-| age                 | Integer   | Exact age                      |
-| age_group           | String    | child, teenager, adult, senior |
-| country_id          | String(2) | ISO country code               |
-| country_name        | String    | Full country name              |
-| country_probability | Float     | Confidence score               |
-| created_at          | Timestamp | Auto-generated                 |
-
----
-
-## 🌱 Data Seeding
-
-* Dataset contains 2026 profiles
-* Seeding is idempotent (no duplicates)
-* Uses `name` as unique constraint
-
-### Run seed:
-
-```
-npm run seed
-```
-
----
-
-## 📡 API Endpoints
-
-### 🔹 Get Profiles
-
-```
-GET /api/profiles
-```
-
-### Query Parameters
-
-| Param                   | Description                           |
-| ----------------------- | ------------------------------------- |
-| page                    | Page number (default: 1)              |
-| limit                   | Max 50 (default: 10)                  |
-| gender                  | male / female                         |
-| age_group               | child / teenager / adult / senior     |
-| country_id              | ISO code (NG, KE, etc.)               |
-| min_age                 | Minimum age                           |
-| max_age                 | Maximum age                           |
-| min_gender_probability  | Float (0–1)                           |
-| min_country_probability | Float (0–1)                           |
-| sort_by                 | age / created_at / gender_probability |
-| order                   | asc / desc                            |
-
----
-
-### ✅ Example
-
-```
-GET /api/profiles?gender=male&country_id=NG&min_age=25&sort_by=age&order=desc
-```
-
----
-
-### 📦 Response
-
-```
-{
-  "status": "success",
-  "page": 1,
-  "limit": 10,
-  "total": 2026,
-  "data": []
-}
-```
-
----
-
-## 🔍 Natural Language Search
-
-```
-GET /api/profiles/search?q=...
-```
-
-Supports rule-based query interpretation.
-
----
-
-### ✅ Examples
-
-| Query                              | Interpretation                              |
-| ---------------------------------- | ------------------------------------------- |
-| young males                        | gender=male, age 16–24                      |
-| females above 30                   | gender=female, min_age=30                   |
-| people from angola                 | country_id=AO                               |
-| adult males from kenya             | gender=male, age_group=adult, country_id=KE |
-| male and female teenagers above 17 | age_group=teenager, min_age=17              |
-
----
-
-### ❌ Invalid Query
-
-```
-{
-  "status": "error",
-  "message": "Unable to interpret query"
-}
-```
-
----
-
-## ⚠️ Error Handling
-
-All errors follow this format:
-
-```
-{
-  "status": "error",
-  "message": "..."
-}
-```
-
-### Status Codes
-
-| Code | Meaning                    |
-| ---- | -------------------------- |
-| 400  | Missing or empty parameter |
-| 422  | Invalid query parameters   |
-| 404  | Not found                  |
-| 500  | Server error               |
-
----
-
-## ⚡ Performance Considerations
-
-* Database-level filtering and pagination
-* Indexed fields for fast queries
-* Efficient Prisma queries
-
----
-
-## 🏗️ Project Structure
-
-```
-src/
-  config/
-  controllers/
-  routes/
-  services/
-  utils/
-  middleware/
-prisma/
-  schema.prisma
-  seed.js
-```
-
----
-
-## ▶️ Run Locally
-
-### 1. Install dependencies
-
-```
-npm install
-```
-
-### 2. Setup environment
-
-Create `.env`:
-
-```
-DATABASE_URL=your_postgres_url
-PORT=5000
-```
-
-### 3. Run migration
-
-```
-npx prisma migrate dev
-```
-
-### 4. Seed database
-
-```
-npm run seed
-```
-
-### 5. Start server
-
-```
-npm run dev
-```
-
----
-
-## 📌 Key Features
-
-* Advanced filtering
-* Combined query conditions
-* Pagination
-* Sorting support
-* Natural language search
-* Strong validation
-* Clean architecture
-
----
-
-## 🎯 Submission Checklist
-
-* [x] Database seeded with 2026 profiles
-* [x] Filtering works correctly
-* [x] Combined filters supported
-* [x] Pagination implemented
-* [x] Sorting implemented
-* [x] Natural language search working
-* [x] Proper validation and error handling
-* [x] README complete
-* [ ] Deployed API URL added
-
----
-
-## 👨‍💻 Kareem Idris
-
-Built as part of Stage 2 Backend Task — Intelligence Query Engine.
+# Insighta Labs+ Platform
+
+Stage 3 extends the Stage 2 Profile Intelligence System without removing existing filtering, sorting, pagination, and natural language search behavior.
+
+## Repositories
+
+- Backend repo: current repository
+- CLI repo: `insighta-cli`
+- Web portal repo: `insighta-web-portal`
+
+## Live URLs
+
+- Live backend URL: set your deployed API URL here
+- Live web portal URL: set your deployed portal URL here
+
+## System Architecture
+
+- Single backend API with Prisma/PostgreSQL for profiles, users, and refresh-token sessions
+- GitHub OAuth (with PKCE) for both browser and CLI clients
+- Versioned profile APIs:
+  - `v1`: legacy Stage 2-compatible response
+  - `v2`: updated pagination envelope (`pagination` object)
+- Two clients against same backend:
+  - `insighta-cli` for terminal workflows
+  - `insighta-web-portal` for browser workflows
+
+## Authentication Flow
+
+- Browser:
+  - Portal redirects to `GET /api/auth/github?interface=web&code_verifier=...`
+  - Backend stores OAuth state + verifier, completes callback, then sets:
+    - `access_token` (HTTP-only cookie, short TTL)
+    - `refresh_token` (HTTP-only cookie, short TTL, rotated)
+    - `csrf_token` (readable cookie for double-submit CSRF)
+- CLI:
+  - CLI opens GitHub login via `GET /api/auth/github?interface=cli&code_verifier=...&cli_redirect_uri=...`
+  - Backend callback redirects to local CLI callback with one-time `request_id`
+  - CLI exchanges `request_id` through `POST /api/auth/cli/complete` to obtain tokens
+
+## Token Handling Approach
+
+- Access tokens are JWTs with short expiration (`ACCESS_TOKEN_TTL`, default `5m`)
+- Refresh tokens are JWTs with short expiration (`REFRESH_TOKEN_TTL`, default `30m`)
+- Refresh tokens are hashed before persistence in `refresh_tokens.token`
+- Refresh endpoint rotates tokens and invalidates the previous refresh token
+- CLI credentials stored at `~/.insighta/credentials.json`
+
+## Role Enforcement Logic
+
+- `protect` middleware validates bearer token or secure cookie token
+- `requireRoles` enforces role access:
+  - `admin`, `analyst`: list/search profile endpoints
+  - `admin` only: CSV export endpoint
+- Enforcement is applied on all profile route groups (`/api/profiles`, `/api/v1/profiles`, `/api/v2/profiles`)
+
+## Natural Language Parsing Approach
+
+- Rule-based parser in `src/utils/queryParser.js`
+- Extracts constrained filters from phrases (gender, age range/group, country)
+- Falls back with `"Unable to interpret query"` on unknown intents
+- Parsed filters reuse the same validation + query pipeline as structured filters
+
+## Security Controls
+
+- GitHub OAuth + PKCE
+- HTTP-only cookie session support for web
+- CSRF protection for cookie-authenticated state-changing routes
+- Role-based access control for protected resources
+- API + auth route rate limiting via `express-rate-limit`
+- Request logging via `morgan`
+
+## API Notes
+
+- Auth:
+  - `GET /api/auth/github`
+  - `GET /api/auth/github/callback`
+  - `POST /api/auth/cli/complete`
+  - `POST /api/auth/refresh`
+  - `POST /api/auth/logout`
+  - `GET /api/auth/me`
+- Profiles:
+  - `GET /api/v1/profiles`
+  - `GET /api/v1/profiles/search`
+  - `GET /api/v1/profiles/export`
+  - `GET /api/v2/profiles`
+  - `GET /api/v2/profiles/search`
+  - `GET /api/v2/profiles/export`
+
+## CLI Usage
+
+From `insighta-cli`:
+
+- `npm link`
+- `insighta login`
+- `insighta whoami`
+- `insighta profiles list "page=1&limit=10"`
+- `insighta profiles search "q=adult%20males%20from%20kenya"`
+- `insighta profiles export`
+- `insighta logout`
+
+## Local Setup
+
+1. Backend
+   - `npm install`
+   - set `.env` (minimum: `DATABASE_URL`, `ACCESS_TOKEN_SECRET`, `REFRESH_TOKEN_SECRET`, `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`, `GITHUB_CALLBACK_URL`, `WEB_PORTAL_URL`, `CORS_ORIGINS`)
+   - `npx prisma migrate dev`
+   - `npm run seed`
+   - `npm run dev`
+2. Web portal
+   - `cd insighta-web-portal`
+   - `npm start`
+3. CLI
+   - `cd insighta-cli`
+   - `npm link`
 
