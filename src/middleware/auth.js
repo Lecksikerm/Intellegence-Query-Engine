@@ -12,11 +12,9 @@ function protect(req, res, next) {
         }
 
         const token = authHeader.split(' ')[1];
-
         const decoded = verifyAccessToken(token);
 
         req.user = decoded;
-
         next();
     } catch (error) {
         return res.status(401).json({
@@ -26,19 +24,20 @@ function protect(req, res, next) {
     }
 }
 
-function requireRole(role) {
+function requireRoles(...roles) {
     return (req, res, next) => {
-        if (!req.user || req.user.role !== role) {
+        if (!req.user || !roles.includes(req.user.role)) {
             return res.status(403).json({
                 status: 'error',
                 message: 'Forbidden'
             });
         }
+
         next();
     };
 }
 
 module.exports = {
     protect,
-    requireRole
+    requireRoles
 };

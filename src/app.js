@@ -5,6 +5,7 @@ const profileRoutes = require('./routes/profile.routes');
 const authRoutes = require('./routes/auth.routes');
 const errorHandler = require('./middleware/errorHandler');
 const { protect } = require('./middleware/auth');
+const v1ProfileRoutes = require('./routes/v1.profile.routes');
 
 const app = express();
 
@@ -32,6 +33,7 @@ app.get('/health', (req, res) => {
 
 app.use('/api/auth', authRoutes);
 app.use('/api/profiles', profileRoutes);
+app.use('/api/v1/profiles', v1ProfileRoutes);
 
 app.get('/api/test-auth', protect, (req, res) => {
     res.status(200).json({
