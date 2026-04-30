@@ -11,7 +11,7 @@ Stage 3 extends the Stage 2 Profile Intelligence System without removing existin
 ## Live URLs
 
 - Live backend URL: https://intellegence-query-engine-production.up.railway.app/
-- Live web portal URL: set your deployed portal URL here
+- Live web portal URL: https://insighta-web-portal-navy.vercel.app/
 
 ## System Architecture
 
@@ -34,8 +34,8 @@ Stage 3 extends the Stage 2 Profile Intelligence System without removing existin
     - `csrf_token` (readable cookie for double-submit CSRF)
 - CLI:
   - CLI opens GitHub login via `GET /api/auth/github?interface=cli&code_verifier=...&cli_redirect_uri=...`
-  - Backend callback redirects to local CLI callback with one-time `request_id`
-  - CLI exchanges `request_id` through `POST /api/auth/cli/complete` to obtain tokens
+  - Backend callback redirects to local CLI callback with one-time `request_token`
+  - CLI exchanges `request_token` through `POST /api/auth/cli/complete` to obtain tokens
 
 ## Token Handling Approach
 
