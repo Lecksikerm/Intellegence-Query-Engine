@@ -23,6 +23,7 @@ function buildGithubAuthUrl(state, codeChallenge) {
 function setSessionCookies(res, accessToken, refreshToken) {
     const isProd = process.env.NODE_ENV === 'production';
     const sameSite = isProd ? 'none' : 'lax';
+    const csrfToken = randomUUID();
 
     res.cookie('access_token', accessToken, {
         httpOnly: true,
@@ -38,12 +39,29 @@ function setSessionCookies(res, accessToken, refreshToken) {
         maxAge: 30 * 60 * 1000
     });
 
-    res.cookie('csrf_token', randomUUID(), {
+    res.cookie('csrf_token', csrfToken, {
         httpOnly: false,
         sameSite,
         secure: isProd,
         maxAge: 30 * 60 * 1000
     });
+
+    return csrfToken;
+}
+
+function issueCsrfToken(res) {
+    const isProd = process.env.NODE_ENV === 'production';
+    const sameSite = isProd ? 'none' : 'lax';
+    const csrfToken = randomUUID();
+
+    res.cookie('csrf_token', csrfToken, {
+        httpOnly: false,
+        sameSite,
+        secure: isProd,
+        maxAge: 30 * 60 * 1000
+    });
+
+    return csrfToken;
 }
 
 function githubLogin(req, res) {
@@ -201,11 +219,22 @@ function me(req, res) {
     });
 }
 
+function csrfToken(req, res) {
+    const csrf = issueCsrfToken(res);
+    return res.status(200).json({
+        status: 'success',
+        data: {
+            csrfToken: csrf
+        }
+    });
+}
+
 module.exports = {
     githubLogin,
     githubCallback,
     completeCliLogin,
     refreshToken,
     logout,
-    me
+    me,
+    csrfToken
 };

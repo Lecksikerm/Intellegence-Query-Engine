@@ -6,6 +6,7 @@ const { protect } = require('../middleware/auth');
 
 router.get('/github', authController.githubLogin);
 router.get('/github/callback', authController.githubCallback);
+router.get('/csrf', authController.csrfToken);
 router.post('/cli/complete', authController.completeCliLogin);
 router.post('/refresh', requireCsrf, authController.refreshToken);
 router.post('/logout', requireCsrf, authController.logout);
