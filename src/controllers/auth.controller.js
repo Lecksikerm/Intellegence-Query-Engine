@@ -22,24 +22,25 @@ function buildGithubAuthUrl(state, codeChallenge) {
 
 function setSessionCookies(res, accessToken, refreshToken) {
     const isProd = process.env.NODE_ENV === 'production';
+    const sameSite = isProd ? 'none' : 'lax';
 
     res.cookie('access_token', accessToken, {
         httpOnly: true,
-        sameSite: 'lax',
+        sameSite,
         secure: isProd,
         maxAge: 5 * 60 * 1000
     });
 
     res.cookie('refresh_token', refreshToken, {
         httpOnly: true,
-        sameSite: 'lax',
+        sameSite,
         secure: isProd,
         maxAge: 30 * 60 * 1000
     });
 
     res.cookie('csrf_token', randomUUID(), {
         httpOnly: false,
-        sameSite: 'lax',
+        sameSite,
         secure: isProd,
         maxAge: 30 * 60 * 1000
     });

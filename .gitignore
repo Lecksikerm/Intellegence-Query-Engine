@@ -3,3 +3,5 @@ node_modules
 .env
 
 /generated/prisma
+insighta-cli/
+insighta-web-portal/
