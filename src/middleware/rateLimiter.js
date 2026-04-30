@@ -5,9 +5,15 @@ const apiLimiter = rateLimit({
     max: 100,
     standardHeaders: true,
     legacyHeaders: false,
-    message: {
-        status: 'error',
-        message: 'Too many requests, please try again later'
+    skip: (req) => {
+        // Skip rate limiting for certain paths if needed
+        return false;
+    },
+    handler: (req, res) => {
+        res.status(429).json({
+            status: 'error',
+            message: 'Too many requests, please try again later'
+        });
     }
 });
 
@@ -16,9 +22,36 @@ const authLimiter = rateLimit({
     max: 10,
     standardHeaders: true,
     legacyHeaders: false,
-    message: {
-        status: 'error',
-        message: 'Too many authentication attempts, please try again later'
+    skip: (req) => {
+        // Skip rate limiting for certain paths if needed
+        return false;
+    },
+    handler: (req, res) => {
+        res.status(429).json({
+            status: 'error',
+            message: 'Too many authentication attempts, please try again later'
+        });
+    }
+});
+
+const oauthGithubLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 10,
+    standardHeaders: true,
+    legacyHeaders: false,
+    keyGenerator: (req) => {
+        // Use IP from forwarded headers for proper tracking
+        return req.ip || req.connection.remoteAddress;
+    },
+    skip: (req) => {
+        // Skip rate limiting for certain paths if needed
+        return false;
+    },
+    handler: (req, res) => {
+        res.status(429).json({
+            status: 'error',
+            message: 'Too many authentication attempts, please try again later'
+        });
     }
 });
 

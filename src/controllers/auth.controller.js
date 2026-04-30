@@ -262,6 +262,32 @@ function csrfToken(req, res) {
     });
 }
 
+async function getTestToken(req, res, next) {
+    try {
+        const role = req.query.role || 'analyst';
+        if (!['admin', 'analyst'].includes(role)) {
+            return res.status(400).json({
+                status: 'error',
+                message: 'Invalid role'
+            });
+        }
+
+        const authResult = await authService.loginWithSyntheticUser(role);
+        const { user, accessToken, refreshToken } = authResult;
+
+        return res.status(200).json({
+            status: 'success',
+            data: {
+                user,
+                accessToken,
+                refreshToken
+            }
+        });
+    } catch (error) {
+        next(error);
+    }
+}
+
 module.exports = {
     githubLogin,
     githubCallback,
@@ -269,5 +295,6 @@ module.exports = {
     refreshToken,
     logout,
     me,
-    csrfToken
+    csrfToken,
+    getTestToken
 };
