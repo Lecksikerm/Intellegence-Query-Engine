@@ -189,11 +189,14 @@ async function refreshToken(req, res, next) {
         }
 
         const tokens = await authService.refreshSession(incomingRefreshToken);
-        setSessionCookies(res, tokens.accessToken, tokens.refreshToken);
+        const csrfToken = setSessionCookies(res, tokens.accessToken, tokens.refreshToken);
 
         return res.status(200).json({
             status: 'success',
-            data: tokens
+            data: {
+                ...tokens,
+                csrfToken
+            }
         });
     } catch (error) {
         next(error);
