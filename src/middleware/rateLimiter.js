@@ -1,4 +1,4 @@
-const rateLimit = require('express-rate-limit');
+const { rateLimit, ipKeyGenerator } = require('express-rate-limit');
 
 const apiLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
@@ -27,7 +27,7 @@ const oauthGithubLimiter = rateLimit({
     max: 10,
     standardHeaders: true,
     legacyHeaders: false,
-    keyGenerator: (req) => req.ip || 'unknown-ip',
+    keyGenerator: (req) => ipKeyGenerator(req.ip),
     message: {
         status: 'error',
         message: 'Too many authentication attempts, please try again later'
