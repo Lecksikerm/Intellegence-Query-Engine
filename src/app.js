@@ -14,6 +14,7 @@ const requestLogger = require('./middleware/requestLogger');
 const { apiLimiter, authLimiter } = require('./middleware/rateLimiter');
 
 const app = express();
+app.set('trust proxy', 1);
 
 function normalizeOrigin(value) {
     return String(value || '')
