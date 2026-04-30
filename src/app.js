@@ -14,18 +14,33 @@ const { apiLimiter, authLimiter } = require('./middleware/rateLimiter');
 
 const app = express();
 
+function normalizeOrigin(value) {
+    return String(value || '')
+        .trim()
+        .replace(/\/+$/, '')
+        .toLowerCase();
+}
+
 app.use(cors({
     origin: (origin, callback) => {
         const allowedOrigins = (process.env.CORS_ORIGINS || '')
             .split(',')
-            .map((value) => value.trim())
+            .map((value) => normalizeOrigin(value))
             .filter(Boolean);
-        if (!origin || allowedOrigins.length === 0 || allowedOrigins.includes(origin)) {
+        const normalizedOrigin = normalizeOrigin(origin);
+
+        if (
+            !origin ||
+            allowedOrigins.length === 0 ||
+            allowedOrigins.includes(normalizedOrigin)
+        ) {
             return callback(null, true);
         }
         return callback(new Error('CORS origin not allowed'));
     },
-    credentials: true
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'x-csrf-token']
 }));
 
 app.use(express.json());
