@@ -1,13 +1,11 @@
 const { randomUUID } = require('crypto');
-const { generateState } = require('../utils/oauthState');
+const { generateState, verifyState } = require('../utils/oauthState');
 const { generateCodeChallenge } = require('../utils/pkce');
 const authService = require('../services/auth.service');
 const {
-    saveOauthSession,
-    consumeOauthSession,
-    createCliCompletion,
-    consumeCliCompletion
-} = require('../utils/oauthStore');
+    generateCliLoginExchangeToken,
+    verifyCliLoginExchangeToken
+} = require('../utils/jwt');
 
 function buildGithubAuthUrl(state, codeChallenge) {
     const params = new URLSearchParams({
@@ -49,7 +47,6 @@ function setSessionCookies(res, accessToken, refreshToken) {
 
 function githubLogin(req, res) {
     const interfaceType = req.query.interface === 'cli' ? 'cli' : 'web';
-    const state = generateState();
     const codeVerifier = String(req.query.code_verifier || '').trim();
     const cliRedirectUri = String(req.query.cli_redirect_uri || '').trim();
 
@@ -68,7 +65,11 @@ function githubLogin(req, res) {
     }
 
     const codeChallenge = generateCodeChallenge(codeVerifier);
-    saveOauthSession({ state, codeVerifier, interfaceType, cliRedirectUri });
+    const state = generateState({
+        interfaceType,
+        codeVerifier,
+        cliRedirectUri: interfaceType === 'cli' ? cliRedirectUri : undefined
+    });
     const authorizeUrl = buildGithubAuthUrl(state, codeChallenge);
 
     if (req.query.redirect === 'false') {
@@ -94,8 +95,10 @@ async function githubCallback(req, res, next) {
             });
         }
 
-        const oauthSession = consumeOauthSession(state);
-        if (!oauthSession) {
+        let oauthSession;
+        try {
+            oauthSession = verifyState(state);
+        } catch (_error) {
             return res.status(400).json({
                 status: 'error',
                 message: 'Invalid OAuth state'
@@ -111,14 +114,14 @@ async function githubCallback(req, res, next) {
             return res.redirect(`${redirectBase}/auth/success`);
         }
 
-        const requestId = createCliCompletion({
+        const requestToken = generateCliLoginExchangeToken({
             user,
             accessToken,
             refreshToken
         });
 
         return res.redirect(
-            `${oauthSession.cliRedirectUri}?request_id=${encodeURIComponent(requestId)}`
+            `${oauthSession.cliRedirectUri}?request_token=${encodeURIComponent(requestToken)}&request_id=${encodeURIComponent(requestToken)}`
         );
     } catch (error) {
         next(error);
@@ -126,16 +129,22 @@ async function githubCallback(req, res, next) {
 }
 
 async function completeCliLogin(req, res) {
-    const { request_id: requestId } = req.body || {};
-    if (!requestId) {
+    const requestToken =
+        req.body?.request_token ||
+        req.body?.requestToken ||
+        req.body?.request_id;
+
+    if (!requestToken) {
         return res.status(400).json({
             status: 'error',
             message: 'Missing or empty parameter'
         });
     }
 
-    const completion = consumeCliCompletion(requestId);
-    if (!completion) {
+    let completion;
+    try {
+        completion = verifyCliLoginExchangeToken(requestToken);
+    } catch (_error) {
         return res.status(401).json({
             status: 'error',
             message: 'Invalid or expired login request'
