@@ -3,8 +3,9 @@ const router = express.Router();
 const authController = require('../controllers/auth.controller');
 const { requireCsrf } = require('../middleware/csrf');
 const { protect } = require('../middleware/auth');
+const { oauthGithubLimiter } = require('../middleware/rateLimiter');
 
-router.get('/github', authController.githubLogin);
+router.get('/github', oauthGithubLimiter, authController.githubLogin);
 router.get('/github/callback', authController.githubCallback);
 router.get('/csrf', authController.csrfToken);
 router.post('/cli/complete', authController.completeCliLogin);
