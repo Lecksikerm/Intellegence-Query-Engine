@@ -39,10 +39,7 @@ const oauthGithubLimiter = rateLimit({
     max: 10,
     standardHeaders: true,
     legacyHeaders: false,
-    keyGenerator: (req) => {
-        // Use IP from forwarded headers for proper tracking
-        return req.ip || req.connection.remoteAddress;
-    },
+    keyGenerator: ipKeyGenerator,
     skip: (req) => {
         // Skip rate limiting for certain paths if needed
         return false;
@@ -52,18 +49,6 @@ const oauthGithubLimiter = rateLimit({
             status: 'error',
             message: 'Too many authentication attempts, please try again later'
         });
-    }
-});
-
-const oauthGithubLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000,
-    max: 10,
-    standardHeaders: true,
-    legacyHeaders: false,
-    keyGenerator: (req) => ipKeyGenerator(req.ip),
-    message: {
-        status: 'error',
-        message: 'Too many authentication attempts, please try again later'
     }
 });
 
