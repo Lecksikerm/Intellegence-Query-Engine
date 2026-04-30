@@ -27,7 +27,7 @@ const oauthGithubLimiter = rateLimit({
     max: 10,
     standardHeaders: true,
     legacyHeaders: false,
-    keyGenerator: () => 'global-oauth-github',
+    keyGenerator: (req) => req.ip || 'unknown-ip',
     message: {
         status: 'error',
         message: 'Too many authentication attempts, please try again later'
