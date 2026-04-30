@@ -4,9 +4,9 @@ Stage 3 extends the Stage 2 Profile Intelligence System without removing existin
 
 ## Repositories
 
-- Backend repo: current repository
-- CLI repo: separate repository (consumes this backend)
-- Web portal repo: separate repository (consumes this backend)
+- Backend repo: https://github.com/Lecksikerm/Intellegence-Query-Engine
+- CLI repo: https://github.com/Lecksikerm/Insighta-CLI
+- Web portal: https://github.com/Lecksikerm/Insighta-web-portal
 
 ## Live URLs
 
