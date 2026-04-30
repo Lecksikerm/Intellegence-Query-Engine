@@ -49,6 +49,13 @@ app.use(express.json());
 app.use(cookieParser());
 
 app.use(requestLogger);
+app.use(['/api/auth', '/auth'], (req, res, next) => {
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.set('Pragma', 'no-cache');
+    res.set('Expires', '0');
+    res.set('Surrogate-Control', 'no-store');
+    next();
+});
 app.use('/api/auth', authLimiter);
 app.use('/auth', authLimiter);
 app.use('/api', apiLimiter);
