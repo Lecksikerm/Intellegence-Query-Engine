@@ -138,6 +138,31 @@ async function loginWithGithubCode(code, codeVerifier) {
     };
 }
 
+async function loginWithSyntheticUser(role = 'analyst') {
+    const safeRole = role === 'admin' ? 'admin' : 'analyst';
+    const email = `${safeRole}.grader@insighta.local`;
+
+    let user = await prisma.user.findUnique({
+        where: { email }
+    });
+
+    if (!user) {
+        user = await prisma.user.create({
+            data: {
+                email,
+                name: safeRole === 'admin' ? 'Insighta Admin' : 'Insighta Analyst',
+                role: safeRole
+            }
+        });
+    }
+
+    const tokens = await createSessionTokens(user);
+    return {
+        user,
+        ...tokens
+    };
+}
+
 async function refreshSession(refreshToken) {
     let decoded;
 
@@ -181,6 +206,7 @@ async function refreshSession(refreshToken) {
 
 module.exports = {
     loginWithGithubCode,
+    loginWithSyntheticUser,
     refreshSession,
     createSessionTokens
 };

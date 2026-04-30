@@ -11,5 +11,11 @@ router.post('/cli/complete', authController.completeCliLogin);
 router.post('/refresh', requireCsrf, authController.refreshToken);
 router.post('/logout', requireCsrf, authController.logout);
 router.get('/me', protect, authController.me);
+router.all('/refresh', (req, res) =>
+    res.status(405).json({ status: 'error', message: 'Method not allowed' })
+);
+router.all('/logout', (req, res) =>
+    res.status(405).json({ status: 'error', message: 'Method not allowed' })
+);
 
 module.exports = router;

@@ -6,6 +6,7 @@ const profileRoutes = require('./routes/profile.routes');
 const authRoutes = require('./routes/auth.routes');
 const v1ProfileRoutes = require('./routes/v1.profile.routes');
 const v2ProfileRoutes = require('./routes/v2.profile.routes');
+const userRoutes = require('./routes/user.routes');
 
 const errorHandler = require('./middleware/errorHandler');
 const { protect } = require('./middleware/auth');
@@ -48,6 +49,7 @@ app.use(cookieParser());
 
 app.use(requestLogger);
 app.use('/api/auth', authLimiter);
+app.use('/auth', authLimiter);
 app.use('/api', apiLimiter);
 
 app.get('/', (req, res) => {
@@ -65,6 +67,8 @@ app.get('/health', (req, res) => {
 });
 
 app.use('/api/auth', authRoutes);
+app.use('/auth', authRoutes);
+app.use('/api/users', userRoutes);
 app.use('/api/v1/profiles', v1ProfileRoutes);
 app.use('/api/v2/profiles', v2ProfileRoutes);
 app.use('/api/profiles', profileRoutes);
